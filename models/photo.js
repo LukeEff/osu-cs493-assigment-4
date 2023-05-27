@@ -2,10 +2,11 @@
  * Photo schema and data accessor methods.
  */
 
-const { ObjectId } = require('mongodb')
+const { ObjectId, GridFSBucket } = require('mongodb')
 
 const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
+const fs = require("fs");
 
 /*
  * Schema describing required/optional fields of a photo object.
@@ -23,11 +24,31 @@ exports.PhotoSchema = PhotoSchema
  */
 async function insertNewPhoto(photo) {
   photo = extractValidFields(photo, PhotoSchema)
-  photo.businessId = ObjectId(photo.businessId)
+  //photo.businessId = ObjectId(photo.businessId)
   const db = getDbReference()
-  const collection = db.collection('photos')
-  const result = await collection.insertOne(photo)
-  return result.insertedId
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const metadata = {
+    contentType: photo.file.mimetype,
+    businessId: photo.businessId,
+    caption: photo.caption
+  }
+  // Upload the photo alongside its metadata to the database
+  return new Promise(resolve => {
+    fs.createReadStream(photo.file.path).pipe(bucket.openUploadStream(photo.file.originalname, {
+          chunkSizeBytes: 512,
+          metadata: metadata
+        })
+    ).on('finish', function (result) {
+      console.log(result)
+      resolve(result._id)
+    })
+  })
+
+
+
+  //const collection = db.collection('photos')
+  //const result = await collection.insertOne(photo)
+  //return result.insertedId
 }
 exports.insertNewPhoto = insertNewPhoto
 
@@ -39,6 +60,12 @@ exports.insertNewPhoto = insertNewPhoto
  */
 async function getPhotoById(id) {
   const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results[0]
+
+  /*
   const collection = db.collection('photos')
   if (!ObjectId.isValid(id)) {
     return null
@@ -48,5 +75,6 @@ async function getPhotoById(id) {
       .toArray()
     return results[0]
   }
+   */
 }
 exports.getPhotoById = getPhotoById

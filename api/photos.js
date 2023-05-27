@@ -34,14 +34,17 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
   if (validateAgainstSchema(req.body, PhotoSchema)) {
     try {
-      const id = await insertNewPhoto(req.body)
-      res.status(201).send({
-        id: id,
-        links: {
-          photo: `/photos/${id}`,
-          business: `/businesses/${req.body.businessId}`
-        }
-      })
+      req.body.businessId = Number(req.body.businessId)
+      await insertNewPhoto(req.body).then( id => {
+            res.status(201).send({
+              id: id,
+              links: {
+                photo: `/photos/${id}`,
+                business: `/businesses/${req.body.businessId}`
+              }
+            })
+          }
+      )
     } catch (err) {
       console.error(err)
       res.status(500).send({

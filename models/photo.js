@@ -12,7 +12,8 @@ const { extractValidFields } = require('../lib/validation')
  */
 const PhotoSchema = {
   businessId: { required: true },
-  caption: { required: false }
+  caption: { required: false },
+  file: { required: true, acceptableFormats: ['image/jpeg', 'image/png'] },
 }
 exports.PhotoSchema = PhotoSchema
 

@@ -43,12 +43,6 @@ async function insertNewPhoto(photo) {
       resolve(result._id)
     })
   })
-
-
-
-  //const collection = db.collection('photos')
-  //const result = await collection.insertOne(photo)
-  //return result.insertedId
 }
 exports.insertNewPhoto = insertNewPhoto
 
@@ -64,17 +58,14 @@ async function getPhotoById(id) {
   const cursor = bucket.find({ _id: new ObjectId(id) })
   const results = await cursor.toArray()
   return results[0]
-
-  /*
-  const collection = db.collection('photos')
-  if (!ObjectId.isValid(id)) {
-    return null
-  } else {
-    const results = await collection
-      .find({ _id: new ObjectId(id) })
-      .toArray()
-    return results[0]
-  }
-   */
 }
+
+async function downloadPhotoById(id, outputFile) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const downStream = bucket.openDownloadStream(new ObjectId(id))
+  downStream.pipe(outputFile)
+}
+
 exports.getPhotoById = getPhotoById
+exports.downloadPhotoById = downloadPhotoById

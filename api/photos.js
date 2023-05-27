@@ -39,7 +39,7 @@ router.post('/', upload.single('file'), async (req, res) => {
             res.status(201).send({
               id: id,
               links: {
-                photo: `/photos/${id}`,
+                photo: `/media/photos/${id}.${mime.extension(req.file.mimetype)}}`,
                 business: `/businesses/${req.body.businessId}`
               }
             })

@@ -3,8 +3,11 @@ const morgan = require('morgan')
 
 const api = require('./api')
 const { connectToDb } = require('./lib/mongo')
-
+const bodyParser = require("body-parser");
+const multer = require('multer');
+const upload = multer();
 const app = express()
+app.use(bodyParser.json())
 const port = process.env.PORT || 8000
 
 /*

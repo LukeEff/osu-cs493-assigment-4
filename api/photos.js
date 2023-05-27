@@ -10,13 +10,28 @@ const {
   insertNewPhoto,
   getPhotoById
 } = require('../models/photo')
+const mime = require('mime-types')
+const multer = require('multer')
+const upload = multer({ dest: `${__dirname}/uploads/images`, fileFilter: (req, file, callback) => {
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+    callback(null, true)
+  }
+  else {
+    callback(new Error('Invalid file type. Only jpeg and png files are allowed.'), false)
+  }
+}})
+
 
 const router = Router()
 
 /*
  * POST /photos - Route to create a new photo.
  */
-router.post('/', async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
+  req.body = {
+    ...req.body,
+    file: req.file
+  }
   if (validateAgainstSchema(req.body, PhotoSchema)) {
     try {
       const id = await insertNewPhoto(req.body)

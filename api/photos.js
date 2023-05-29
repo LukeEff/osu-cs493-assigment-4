@@ -71,11 +71,24 @@ router.post('/', upload.single('file'), async (req, res) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const photo = await getPhotoById(req.params.id)
-    if (photo) {
-      res.status(200).send(photo)
-    } else {
-      next()
+    if (!photo) {
+      return next()
     }
+
+    const metadata = photo.metadata
+
+    // Generate URLs for photo
+    const extension = metadata.contentType.split('/').pop()
+    const photoUrl = `/media/photos/${req.params.id}.${extension}`
+    const thumbUrl = photo.thumbId ? `/media/thumbs/${photo.thumbId}.jpg` : null
+    console.log(photo)
+    res.status(200).send({
+      ...photo,
+      links: {
+        photo: photoUrl,
+        thumbnail: thumbUrl
+      }
+    })
   } catch (err) {
     console.error(err)
     res.status(500).send({

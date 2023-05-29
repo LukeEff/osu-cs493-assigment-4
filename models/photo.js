@@ -48,29 +48,36 @@ async function insertNewPhoto(photo) {
   })
 }
 
-async function getDownloadedPhotoFileById(id) {
+async function getDownloadedPhotoFileById(id, fileLocation) {
   const db = getDbReference()
   const bucket = new GridFSBucket(db, { bucketName: 'photos' })
-  const cursor = bucket.find({ _id: new ObjectId(id) })
-  const results = await cursor.toArray()
-  return results[0]
-}
+  const downloadStream = bucket.openDownloadStream(new ObjectId(id))
 
-async function transformPhotoToPixels(photo, width, height) {
-  const image = await Jimp.read(photo)
   return new Promise(resolve => {
-    image.resize(width, height).getBuffer(Jimp.MIME_JPEG, (err, buffer) => {
-      const writePath = `/tmp/${photoId}-thumb.jpg`
-      buffer.write(writePath)
-      resolve(writePath)
+    downloadStream.on('data', (chunk) => {
+      fs.appendFileSync(fileLocation, chunk);
+    })
+    downloadStream.on('end', () => {
+      resolve(fileLocation)
     })
   })
 }
 
+async function transformPhotoToPixels(photoFilePath, width, height) {
+  const image = await Jimp.read(photoFilePath)
+  const newPhotoFilePath = `/tmp/${photoFilePath}`
+  return new Promise(resolve => {
+    image.resize(width, height).write(newPhotoFilePath, () => {
+      resolve(newPhotoFilePath)
+    })
+  })
+
+}
+
 async function updateThumbnailIdOfPhoto(photoId, thumbId) {
   const db = getDbReference()
-  const collection = db.collection('photos')
-  const result = await collection.updateOne(
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const result = await bucket.updateOne(
     { _id: new ObjectId(photoId) },
     { $set: { thumbId: thumbId } }
   )
@@ -79,7 +86,7 @@ async function updateThumbnailIdOfPhoto(photoId, thumbId) {
 
 async function uploadNewThumbnailFromPhoto(photoId) {
   // Retrieve photo and scale it down to 100x100px
-  const photo = await getDownloadedPhotoFileById(photoId)
+  const photo = await getDownloadedPhotoFileById(photoId, `/tmp/${photoId}.jpg`)
   const transformedFilePath = await transformPhotoToPixels(photo, 100, 100)
 
   // Get a reference to the database and to the bucket
@@ -91,6 +98,7 @@ async function uploadNewThumbnailFromPhoto(photoId) {
 
   // Upload the scaled thumbnail to the database
   return new Promise(resolve => {
+    // openUploadStream parameter filename might be better not to be a photoId
     fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStream(photoId, {
           chunkSizeBytes: 512,
           metadata: metadata
@@ -143,3 +151,5 @@ exports.insertNewPhoto = insertNewPhoto
 exports.getPhotoById = getPhotoById
 exports.downloadPhotoById = downloadPhotoById
 exports.uploadNewThumbnailFromPhoto = uploadNewThumbnailFromPhoto
+exports.downloadThumbnailById = downloadThumbnailById
+exports.getThumbnailById = getThumbnailById

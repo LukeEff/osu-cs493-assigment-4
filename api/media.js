@@ -1,5 +1,5 @@
 const { Router } = require('express')
-const { getPhotoById, downloadPhotoById} = require("../models/photo");
+const { getPhotoById, downloadPhotoById, downloadThumbnailById} = require("../models/photo");
 
 const router = Router()
 
@@ -39,7 +39,7 @@ router.get('/photos/:id.png', async (req, res, next) => {
 
 router.get('/thumbs/:id.jpg', async (req, res, next) => {
   try {
-    await downloadThumbById(req.params.id, res)
+    await downloadThumbnailById(req.params.id, res)
   } catch (err) {
     console.error(err)
     res.status(500).send({

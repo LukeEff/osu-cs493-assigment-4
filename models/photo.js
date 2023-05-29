@@ -43,7 +43,7 @@ async function insertNewPhoto(photo) {
     ).on('finish', function (result) {
       console.log(result)
       sendToQueue(result._id.toString())
-      resolve(result)
+      resolve(result._id)
     })
   })
 }

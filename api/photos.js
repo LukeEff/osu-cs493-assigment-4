@@ -35,9 +35,8 @@ router.post('/', upload.single('file'), async (req, res) => {
   if (validateAgainstSchema(req.body, PhotoSchema)) {
     try {
       req.body.businessId = Number(req.body.businessId)
-      await insertNewPhoto(req.body).then( metadata => {
+      await insertNewPhoto(req.body).then( id => {
         // Download path for photo
-        const id = metadata.id
         const extension = mime.extension(req.file.mimetype) // look into using returned metadata instead of this
         const photoUrl = `/media/photos/${id}.${extension}`
         // Path for business

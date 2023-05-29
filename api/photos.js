@@ -80,7 +80,7 @@ router.get('/:id', async (req, res, next) => {
     // Generate URLs for photo
     const extension = metadata.contentType.split('/').pop()
     const photoUrl = `/media/photos/${req.params.id}.${extension}`
-    const thumbUrl = photo.thumbId ? `/media/thumbs/${photo.thumbId}.jpg` : null
+    const thumbUrl = photo.thumbId ? `/media/thumbs/${photo.thumbId}.jpg` : ''
     console.log(photo)
     res.status(200).send({
       ...photo,

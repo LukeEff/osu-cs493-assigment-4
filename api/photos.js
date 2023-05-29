@@ -35,16 +35,23 @@ router.post('/', upload.single('file'), async (req, res) => {
   if (validateAgainstSchema(req.body, PhotoSchema)) {
     try {
       req.body.businessId = Number(req.body.businessId)
-      await insertNewPhoto(req.body).then( id => {
-            res.status(201).send({
-              id: id,
-              links: {
-                photo: `/media/photos/${id}.${mime.extension(req.file.mimetype)}}`,
-                business: `/businesses/${req.body.businessId}`
-              }
-            })
+      await insertNewPhoto(req.body).then( metadata => {
+        // Download path for photo
+        const id = metadata.id
+        const extension = mime.extension(req.file.mimetype) // look into using returned metadata instead of this
+        const photoUrl = `/media/photos/${id}.${extension}`
+        // Path for business
+        const businessId = req.body.businessId
+        const businessUrl = `/businesses/${businessId}`
+
+        res.status(201).send({
+          id: id,
+          links: {
+            photo: photoUrl,
+            business: businessUrl
           }
-      )
+        })
+      })
     } catch (err) {
       console.error(err)
       res.status(500).send({

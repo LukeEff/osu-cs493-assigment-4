@@ -34,3 +34,10 @@ services:
       - db
       - db-init
     restart: on-failure
+
+  rabbit-mq:
+    image: rabbitmq:3
+    ports:
+        - 15672:15672
+        - 15671:15671
+        - 5672:5672

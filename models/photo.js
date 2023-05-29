@@ -6,7 +6,9 @@ const { ObjectId, GridFSBucket } = require('mongodb')
 
 const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
+const { sendToQueue } = require('../lib/rabbitmq')
 const fs = require("fs");
+const Jimp = require('jimp');
 
 /*
  * Schema describing required/optional fields of a photo object.
@@ -40,11 +42,66 @@ async function insertNewPhoto(photo) {
         })
     ).on('finish', function (result) {
       console.log(result)
+      sendToQueue(result._id.toString())
+      resolve(result)
+    })
+  })
+}
+
+async function getDownloadedPhotoFileById(id) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results[0]
+}
+
+async function transformPhotoToPixels(photo, width, height) {
+  const image = await Jimp.read(photo)
+  return new Promise(resolve => {
+    image.resize(width, height).getBuffer(Jimp.MIME_JPEG, (err, buffer) => {
+      const writePath = `/tmp/${photoId}-thumb.jpg`
+      buffer.write(writePath)
+      resolve(writePath)
+    })
+  })
+}
+
+async function updateThumbnailIdOfPhoto(photoId, thumbId) {
+  const db = getDbReference()
+  const collection = db.collection('photos')
+  const result = await collection.updateOne(
+    { _id: new ObjectId(photoId) },
+    { $set: { thumbId: thumbId } }
+  )
+  return result.matchedCount > 0
+}
+
+async function uploadNewThumbnailFromPhoto(photoId) {
+  // Retrieve photo and scale it down to 100x100px
+  const photo = await getDownloadedPhotoFileById(photoId)
+  const transformedFilePath = await transformPhotoToPixels(photo, 100, 100)
+
+  // Get a reference to the database and to the bucket
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const metadata = {
+    contentType: 'image/jpeg',
+  }
+
+  // Upload the scaled thumbnail to the database
+  return new Promise(resolve => {
+    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStream(photoId, {
+          chunkSizeBytes: 512,
+          metadata: metadata
+        })
+    ).on('finish', function (result) {
+      updateThumbnailIdOfPhoto(photoId, result._id.toString())
       resolve(result._id)
     })
   })
 }
-exports.insertNewPhoto = insertNewPhoto
+
 
 /*
  * Executes a DB query to fetch a single specified photo based on its ID.
@@ -67,5 +124,22 @@ async function downloadPhotoById(id, outputFile) {
   downStream.pipe(outputFile)
 }
 
+async function getThumbnailById(id) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results[0]
+}
+
+async function downloadThumbnailById(id, outputFile) {
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const downStream = bucket.openDownloadStream(new ObjectId(id))
+  downStream.pipe(outputFile)
+}
+
+exports.insertNewPhoto = insertNewPhoto
 exports.getPhotoById = getPhotoById
 exports.downloadPhotoById = downloadPhotoById
+exports.uploadNewThumbnailFromPhoto = uploadNewThumbnailFromPhoto

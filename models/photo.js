@@ -6,7 +6,7 @@ const { ObjectId, GridFSBucket } = require('mongodb')
 
 const { getDbReference } = require('../lib/mongo')
 const { extractValidFields } = require('../lib/validation')
-const { sendToQueue } = require('../lib/rabbitmq')
+const { sendToQueue, QueueName } = require('../lib/rabbitmq')
 const fs = require("fs");
 const Jimp = require('jimp');
 
@@ -42,7 +42,7 @@ async function insertNewPhoto(photo) {
         })
     ).on('finish', function (result) {
       console.log(result)
-      sendToQueue(result._id.toString())
+      sendToQueue(QueueName.PHOTOS, result._id.toString())
       resolve(result._id)
     })
   })

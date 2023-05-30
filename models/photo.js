@@ -71,7 +71,6 @@ async function transformPhotoToPixels(photoFilePath, width, height) {
       resolve(newPhotoFilePath)
     })
   })
-
 }
 
 async function uploadNewThumbnailFromPhoto(photoId) {
@@ -95,6 +94,7 @@ async function uploadNewThumbnailFromPhoto(photoId) {
           metadata: metadata
         })
     ).on('finish', function (result) {
+      console.log(result)
       resolve(result._id)
     })
   })
@@ -113,6 +113,28 @@ async function getPhotoById(id) {
   const cursor = bucket.find({ _id: new ObjectId(id) })
   const results = await cursor.toArray()
   return results[0]
+}
+
+async function containsPhoto(id) {
+  if (!ObjectId.isValid(id)) {
+    return false
+  }
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results.length > 0
+}
+
+async function containsThumbnail(id) {
+  if (!ObjectId.isValid(id)) {
+    return false
+  }
+  const db = getDbReference()
+  const bucket = new GridFSBucket(db, { bucketName: 'thumbs' })
+  const cursor = bucket.find({ _id: new ObjectId(id) })
+  const results = await cursor.toArray()
+  return results.length > 0
 }
 
 async function downloadPhotoById(id, outputFile) {
@@ -143,3 +165,5 @@ exports.downloadPhotoById = downloadPhotoById
 exports.uploadNewThumbnailFromPhoto = uploadNewThumbnailFromPhoto
 exports.downloadThumbnailById = downloadThumbnailById
 exports.getThumbnailById = getThumbnailById
+exports.containsPhoto = containsPhoto
+exports.containsThumbnail = containsThumbnail

@@ -1,10 +1,16 @@
 const { Router } = require('express')
-const { downloadPhotoById, downloadThumbnailById} = require("../models/photo");
+const { downloadPhotoById, downloadThumbnailById, containsThumbnail, containsPhoto} = require("../models/photo");
 
 const router = Router()
 
 router.get('/photos/:id.jpg', async (req, res, next) => {
   try {
+    if (!await containsPhoto(req.params.id)) {
+      res.status(404).send({
+        error: "Photo not found."
+      })
+      return
+    }
     await downloadPhotoById(req.params.id, res)
   } catch (err) {
     console.error(err)
@@ -16,6 +22,12 @@ router.get('/photos/:id.jpg', async (req, res, next) => {
 
 router.get('/photos/:id.jpeg', async (req, res, next) => {
   try {
+    if (!await containsPhoto(req.params.id)) {
+      res.status(404).send({
+        error: "Photo not found."
+      })
+      return
+    }
     await downloadPhotoById(req.params.id, res)
   } catch (err) {
     console.error(err)
@@ -28,6 +40,12 @@ router.get('/photos/:id.jpeg', async (req, res, next) => {
 
 router.get('/photos/:id.png', async (req, res, next) => {
   try {
+    if (!await containsPhoto(req.params.id)) {
+      res.status(404).send({
+        error: "Photo not found."
+      })
+      return
+    }
     await downloadPhotoById(req.params.id, res)
   } catch (err) {
     console.error(err)
@@ -39,6 +57,12 @@ router.get('/photos/:id.png', async (req, res, next) => {
 
 router.get('/thumbs/:id.jpg', async (req, res, next) => {
   try {
+    if (!await containsThumbnail(req.params.id)) {
+      res.status(404).send({
+        error: "Thumbnail not found."
+      })
+      return
+    }
     await downloadThumbnailById(req.params.id, res)
   } catch (err) {
     console.error(err)

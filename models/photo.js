@@ -26,7 +26,6 @@ exports.PhotoSchema = PhotoSchema
  */
 async function insertNewPhoto(photo) {
   photo = extractValidFields(photo, PhotoSchema)
-  //photo.businessId = ObjectId(photo.businessId)
   const db = getDbReference()
   const bucket = new GridFSBucket(db, { bucketName: 'photos' })
   const metadata = {
@@ -89,7 +88,7 @@ async function uploadNewThumbnailFromPhoto(photoId) {
   // Upload the scaled thumbnail to the database
   return new Promise(resolve => {
     // openUploadStream parameter filename might be better not to be a photoId
-    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStreamWithId(photoId, photoMetadata.filename, {
+    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStreamWithId(new ObjectId(photoId), photoMetadata.filename, {
           chunkSizeBytes: 512,
           metadata: metadata
         })

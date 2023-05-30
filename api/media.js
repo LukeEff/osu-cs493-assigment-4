@@ -1,5 +1,5 @@
 const { Router } = require('express')
-const { getPhotoById, downloadPhotoById, downloadThumbnailById} = require("../models/photo");
+const { downloadPhotoById, downloadThumbnailById} = require("../models/photo");
 
 const router = Router()
 

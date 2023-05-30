@@ -40,9 +40,9 @@ async function insertNewPhoto(photo) {
           chunkSizeBytes: 512,
           metadata: metadata
         })
-    ).on('finish', function (result) {
+    ).on('finish', async function (result) {
       console.log(result)
-      sendToQueue(QueueName.PHOTOS, result._id.toString())
+      await sendToQueue(QueueName.PHOTOS, result._id.toString())
       resolve(result._id)
     })
   })
@@ -74,20 +74,11 @@ async function transformPhotoToPixels(photoFilePath, width, height) {
 
 }
 
-async function updateThumbnailIdOfPhoto(photoId, thumbId) {
-  const db = getDbReference()
-  const bucket = new GridFSBucket(db, { bucketName: 'photos' })
-  const result = await bucket.updateOne(
-    { _id: new ObjectId(photoId) },
-    { $set: { thumbId: thumbId } }
-  )
-  return result.matchedCount > 0
-}
-
 async function uploadNewThumbnailFromPhoto(photoId) {
   // Retrieve photo and scale it down to 100x100px
   const photo = await getDownloadedPhotoFileById(photoId, `/tmp/${photoId}.jpg`)
   const transformedFilePath = await transformPhotoToPixels(photo, 100, 100)
+  const photoMetadata = await getPhotoById(photoId)
 
   // Get a reference to the database and to the bucket
   const db = getDbReference()
@@ -99,12 +90,11 @@ async function uploadNewThumbnailFromPhoto(photoId) {
   // Upload the scaled thumbnail to the database
   return new Promise(resolve => {
     // openUploadStream parameter filename might be better not to be a photoId
-    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStream(photoId, {
+    fs.createReadStream(transformedFilePath).pipe(bucket.openUploadStreamWithId(photoId, photoMetadata.filename, {
           chunkSizeBytes: 512,
           metadata: metadata
         })
     ).on('finish', function (result) {
-      updateThumbnailIdOfPhoto(photoId, result._id.toString())
       resolve(result._id)
     })
   })

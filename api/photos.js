@@ -39,6 +39,10 @@ router.post('/', upload.single('file'), async (req, res) => {
         // Download path for photo
         const extension = mime.extension(req.file.mimetype) // look into using returned metadata instead of this
         const photoUrl = `/media/photos/${id}.${extension}`
+
+        // Download path for thumbnail
+        const thumbUrl = `/media/thumbs/${id}.jpg`
+
         // Path for business
         const businessId = req.body.businessId
         const businessUrl = `/businesses/${businessId}`
@@ -47,7 +51,8 @@ router.post('/', upload.single('file'), async (req, res) => {
           id: id,
           links: {
             photo: photoUrl,
-            business: businessUrl
+            business: businessUrl,
+            thumbnail: thumbUrl
           }
         })
       })
@@ -79,7 +84,7 @@ router.get('/:id', async (req, res, next) => {
     // Generate URLs for photo
     const extension = metadata.contentType.split('/').pop()
     const photoUrl = `/media/photos/${req.params.id}.${extension}`
-    const thumbUrl = photo.thumbId ? `/media/thumbs/${photo.thumbId}.jpg` : ''
+    const thumbUrl = `/media/thumbs/${req.params.id}.jpg`
     console.log(photo)
     res.status(200).send({
       ...photo,
